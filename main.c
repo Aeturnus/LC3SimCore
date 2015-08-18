@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "LC3.h"
+#include "lc3.h"
 
 enum FileStatus
 {
@@ -13,6 +13,8 @@ enum FileStatus openObj(char* filePath,obj_file* obj);
 void deleteObj(obj_file* obj);
 
 int main() {
+    unsigned int cycles = 0;
+
     printf("Hello world\n");
     LC3 lc3;
     LC3_init(&lc3);
@@ -27,7 +29,7 @@ int main() {
     }
     LC3_loadObj(&lc3,obj);
 
-    for(lc3.memory.mem[0xFFFE] |= 0x8000 ; LC3_cycle(&lc3) == SUCCESS;);
+    for(lc3.memory.mem[0xFFFE] |= 0x8000 ; LC3_cycle(&lc3) == SUCCESS;cycles++);
     for(int i = 0; i < GPR_NUM; i++)
     {
         printf("Reg %d: x%04x | %d\n",i,lc3.registers[i],(int16_t)lc3.registers[i]);
@@ -36,6 +38,7 @@ int main() {
     {
         printf("x%x : x%04x\n",0x3000+i,lc3.memory.mem[0x3000+i]);
     }
+    printf("%d cycles\n",cycles);
 
 
     return 0;

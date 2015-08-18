@@ -2,7 +2,7 @@
 // Created by Brandon on 8/17/2015.
 //
 
-#include "LC3.h"
+#include "lc3.h"
 
 void LC3_init(LC3* ptr)
 {
