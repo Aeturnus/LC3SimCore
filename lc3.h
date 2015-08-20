@@ -36,16 +36,18 @@
 #define DSR     0xFE04
 #define DDR     0xFE06
 #define MCR     0xFFFE
+#define IVT     0x0100
 
+//Interrupt vector
+#define IV_ILL   0x00
+#define IV_EXC   0x01
+#define IV_KB    0x80
+#define IV_HD    0x82
 //New io device:
 #define HDSR    0xFE08  //Hard disk status register
 #define HDDR    0xFE0A  //Hard disk data register
-struct Memory_str
-{
-    uint16_t mem[0x10000];  //All the memory
-};
 
-typedef struct LC3_str
+typedef struct lc3_str
 {
     uint16_t registers[8];  //General purpose regs
     uint16_t psr;           //process status register
@@ -53,12 +55,15 @@ typedef struct LC3_str
     uint16_t ir;           //Memory address register
     uint16_t mar;           //Memory address register
     uint16_t mdr;           //Memory data register
-    struct Memory_str memory;      //Memory struct
+    //struct Memory_str memory;      //Memory struct
+    uint16_t mem[0x10000];
     uint8_t intLines[32];   //A bit for each possible interrupt
     uint8_t* disk;          //Attach a disk to the LC3 when wanted
     uint8_t diskStatus;     //How many cycles before disk read is complete
     uint8_t vram[1920];     //Memory for the text display. Not accessible to user.
-}LC3;
+    uint8_t cursorX;
+    uint8_t cursorY;
+} lc3;
 
 typedef struct obj_str
 {
@@ -71,39 +76,45 @@ enum CycleReturn
 {
     SUCCESS,
     HALT,
-    EXCEPTION
 };
 
-void LC3_init(LC3* ptr);
-enum CycleReturn LC3_cycle(LC3* ptr);
-void LC3_ioHandle(LC3* ptr);
-uint8_t LC3_checkIntLine(LC3*ptr, uint8_t vector);
+void lc3_init(lc3 *ptr);
+enum CycleReturn LC3_cycle(lc3 * ptr);
+void lc3_ioHandle(lc3 *ptr);
 
+void lc3_checkInterrupts(lc3 *ptr);
 //IO handlers
-void LC3_keyHandle(LC3* ptr, uint8_t key);      //Function to deal with keyboard
-void LC3_disHandle(LC3* ptr);
-void LC3_diskHandle(LC3* ptr);
+void lc3_keyHandle(lc3 *ptr, uint8_t key);      //Function to deal with keyboard
+void lc3_disHandle(lc3 *ptr);
+void lc3_diskHandle(lc3 *ptr);
+
+void lc3_interrupt(lc3 *ptr, uint8_t intNum, uint8_t priority);
 
 //Helper functions
-int16_t LC3_SEXT(uint16_t input,uint8_t bitnum);
-void LC3_setcc(LC3* ptr, uint16_t num);
+int16_t lc3_SEXT(uint16_t input, uint8_t bitnum);
+void lc3_setcc(lc3 *ptr, uint16_t num);
+uint8_t lc3_getIntLine(lc3 *ptr, uint8_t intLine);
+void lc3_setIntLine(lc3 *ptr, uint8_t intLine);
+void lc3_clearIntLine(lc3 *ptr, uint8_t intLine);
+
 
 //Classic loading scheme: first word is entry point
-void LC3_loadObj(LC3* ptr,obj_file obj);
+void lc3_loadObj(lc3 *ptr, obj_file obj);
 
 //Inline functions for each instruction
-void LC3_BR(LC3* ptr);
-void LC3_ANDD(LC3* ptr);
-void LC3_LS(LC3* ptr);
-void LC3_JSR(LC3* ptr);
-void LC3_LSR(LC3* ptr);
-void LC3_RTI(LC3* ptr);
-void LC3_NOT(LC3* ptr);
-void LC3_LSI(LC3* ptr);
-void LC3_JMP(LC3* ptr);
-void LC3_RESV(LC3* ptr);
-void LC3_LEA(LC3* ptr);
-void LC3_TRAP(LC3* ptr);
+void lc3_BR(lc3 *ptr);
+void lc3_ANDD(lc3 *ptr);
+void lc3_LS(lc3 *ptr);
+void lc3_JSR(lc3 *ptr);
+void lc3_LSR(lc3 *ptr);
+void lc3_RTI(lc3 *ptr);
+void lc3_NOT(lc3 *ptr);
+void lc3_LSI(lc3 *ptr);
+void lc3_JMP(lc3 *ptr);
+void lc3_RESV(lc3 *ptr);
+void lc3_LEA(lc3 *ptr);
+void lc3_TRAP(lc3 *ptr);
+void lc3_MEM(lc3 *ptr, uint16_t inst, uint16_t *regptr);
 
 
 #endif //LC3SIMCORE_LC3_H

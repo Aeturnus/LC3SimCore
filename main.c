@@ -12,12 +12,17 @@ enum FileStatus
 enum FileStatus openObj(char* filePath,obj_file* obj);
 void deleteObj(obj_file* obj);
 
-int main() {
+int main()
+{
+    printf("Select: \n(a) Step\n(b) Provide keyboard input\n(c) Stop");
+}
+
+int test() {
     unsigned int cycles = 0;
 
     printf("Hello world\n");
-    LC3 lc3;
-    LC3_init(&lc3);
+    lc3 lc3;
+    lc3_init(&lc3);
 
     obj_file obj ={0,0,0};
 
@@ -27,16 +32,16 @@ int main() {
         printf("FAIL!\n");
         return -1;
     }
-    LC3_loadObj(&lc3,obj);
+    lc3_loadObj(&lc3, obj);
 
-    for(lc3.memory.mem[0xFFFE] |= 0x8000 ; LC3_cycle(&lc3) == SUCCESS;cycles++);
+    for(lc3.mem[0xFFFE] |= 0x8000 ; LC3_cycle(&lc3) == SUCCESS;cycles++);
     for(int i = 0; i < GPR_NUM; i++)
     {
-        printf("Reg %d: x%04x | %d\n",i,lc3.registers[i],(int16_t)lc3.registers[i]);
+        printf("R%d    : x%04x | %d\n",i,lc3.registers[i],(int16_t)lc3.registers[i]);
     }
     for(int i = 0; i < 8; i++)
     {
-        printf("x%x : x%04x\n",0x3000+i,lc3.memory.mem[0x3000+i]);
+        printf("x%x : x%04x | %d\n",0x3000+i,lc3.mem[0x3000+i],(int16_t)lc3.mem[0x3000+i]);
     }
     printf("%d cycles\n",cycles);
 

@@ -4,7 +4,7 @@
 
 #include "lc3.h"
 
-void LC3_init(LC3* ptr)
+void lc3_init(lc3 *ptr)
 {
     for(int i = 0; i < GPR_NUM; i++)
     {
@@ -19,14 +19,17 @@ void LC3_init(LC3* ptr)
 }
 
 
-enum CycleReturn LC3_cycle(LC3* ptr)
+enum CycleReturn LC3_cycle(lc3 * ptr)
 {
-    if(!(ptr->memory.mem[0xFFFE] & 0x8000))
+    if(!(ptr->mem[0xFFFE] & 0x8000))
         return HALT;
-                                            //FETCH
-    ptr->mdr = ptr->memory.mem[ptr->pc];    //Load the instruction
+
+                                    //FETCH
+    ptr->mar = ptr->pc;
+    ptr->pc++;                      //Increment program counter
+    lc3_checkInterrupts(ptr);
+    ptr->mdr = ptr->mem[ptr->mar];   //Load the instruction
     ptr->ir = ptr->mdr;
-    ptr->pc++;                              //Increment program counter
 
                                             //DECODE
     uint16_t opcode = ((ptr->ir)>>12)&0xF; //Shift the opcode to get the bits
@@ -34,66 +37,94 @@ enum CycleReturn LC3_cycle(LC3* ptr)
     switch(opcode)
     {
         case OP_ADD:
-            LC3_ANDD(ptr);
+            lc3_ANDD(ptr);
             break;
         case OP_AND:
-            LC3_ANDD(ptr);
+            lc3_ANDD(ptr);
             break;
         case OP_BR:
-            LC3_BR(ptr);
+            lc3_BR(ptr);
             break;
         case OP_JMP:
-            LC3_JMP(ptr);
+            lc3_JMP(ptr);
             break;
         case OP_JSR:
-            LC3_JSR(ptr);
+            lc3_JSR(ptr);
             break;
         case OP_LD:
-            LC3_LS(ptr);
+            lc3_LS(ptr);
             break;
         case OP_LDI:
-            LC3_LSI(ptr);
+            lc3_LSI(ptr);
             break;
         case OP_LDR:
-            LC3_LSR(ptr);
+            lc3_LSR(ptr);
             break;
         case OP_LEA:
-            LC3_LEA(ptr);
+            lc3_LEA(ptr);
             break;
         case OP_NOT:
-            LC3_NOT(ptr);
+            lc3_NOT(ptr);
             break;
         case OP_RESV:
-            LC3_RESV(ptr);
+            lc3_RESV(ptr);
             break;
         case OP_RTI:
-            LC3_RTI(ptr);
+            lc3_RTI(ptr);
             break;
         case OP_ST:
-            LC3_LS(ptr);
+            lc3_LS(ptr);
             break;
         case OP_STI:
-            LC3_LSI(ptr);
+            lc3_LSI(ptr);
             break;
         case OP_STR:
-            LC3_LSR(ptr);
+            lc3_LSR(ptr);
             break;
         case OP_TRAP:
-            LC3_TRAP(ptr);
+            lc3_TRAP(ptr);
             break;
     }
 
-    //LC3_ioHandle(ptr);
+    lc3_ioHandle(ptr);
 
     return SUCCESS;
 }
 
-void LC3_ioHandle(LC3* ptr)
+void lc3_checkInterrupts(lc3 *ptr)
+{
+    //KBDR check
+    //Check KBDR interrupt bit
+    if(ptr->mem[KBSR] & 0x4000)
+    {
+        //Check if the int line has been triggered
+        if(lc3_getIntLine(ptr, IV_KB))
+        {
+            lc3_interrupt(ptr, IV_KB, 4);
+            lc3_clearIntLine(ptr, IV_KB);
+        }
+    }
+}
+
+void lc3_ioHandle(lc3 *ptr)
 {
 
 }
 
-inline int16_t LC3_SEXT(uint16_t input,uint8_t bits)
+void lc3_keyHandle(lc3 *ptr, uint8_t key)
+{
+    if(! (ptr->mem[KBSR] & 0x8000))
+    {
+        ptr->mem[KBDR] = key & 0xFF;      //Set the character
+        ptr->mem[KBSR] |= 0x8000;         //Set the freshness bit
+        if(ptr->mem[KBSR] & 0x4000)
+        {
+            lc3_setIntLine(ptr, IV_KB);
+        }
+    }
+}
+
+inline int16_t lc3_SEXT(uint16_t input, uint8_t bits)
 {
     int i = 0;
     uint8_t numshift = 16 - bits;
@@ -106,7 +137,7 @@ inline int16_t LC3_SEXT(uint16_t input,uint8_t bits)
     return (num)>>numshift;
 }
 
-inline void LC3_setcc(LC3* ptr, uint16_t num)
+inline void lc3_setcc(lc3 *ptr, uint16_t num)
 {
     if(num == 0)
     {
@@ -122,16 +153,55 @@ inline void LC3_setcc(LC3* ptr, uint16_t num)
     }
 }
 
+inline uint8_t lc3_getIntLine(lc3 *ptr, uint8_t intLine)
+{
+    uint8_t output;
+    output = ((ptr->intLines[intLine/8])>>(intLine%8))&0x1;
+    return output;
+}
+inline void lc3_setIntLine(lc3 *ptr, uint8_t intLine)
+{
+    ptr->intLines[intLine/8] |= (0x1)<<(intLine%8);
+}
+inline void lc3_clearIntLine(lc3 *ptr, uint8_t intLine)
+{
+    ptr->intLines[intLine/8] &= ~((0x1)<<(intLine%8));
+}
+
+void lc3_interrupt(lc3 *ptr, uint8_t intNum, uint8_t priority)
+{
+    uint8_t currpriority = (ptr->psr >> 8)&0x7;
+    if(priority > currpriority)
+    {
+        //If priority is higher than current priority, do it
+
+        //Push the PSR and PC
+        //Quick version
+        ptr->registers[6]--;
+        ptr->mem[ptr->registers[6]] = ptr->psr;
+        ptr->registers[6]--;
+        ptr->mem[ptr->registers[6]] = ptr->pc-1;    //-1 because pc already incremented
+
+        ptr->psr &= 0x7FFF; //Clear the mode bit, so PSR[15] is now 0
+        ptr->psr = (ptr->psr & ~0x700) | ((priority&0x7)<<8);   //Set the priority
+        ptr->mar = 0x100 + intNum;
+        ptr->mdr = ptr->mem[ptr->mar];
+        ptr->mar = ptr->mdr;
+        ptr->pc = ptr->mdr;                                     //PC of interrupt SR
+
+    }
+
+}
 
 //Loading functions
 
 //The classic loading scheme we all know and love
-void LC3_loadObj(LC3* ptr, obj_file obj)
+void lc3_loadObj(lc3 *ptr, obj_file obj)
 {
     size_t i = 0;
     uint16_t entry = obj.buffer[i]; //Set the pc
     ptr->pc = entry;
-    uint16_t* mem = &(ptr->memory.mem[0]);  //Have a quick to access pointer to memory
+    uint16_t* mem = &(ptr->mem[0]);  //Have a quick to access pointer to memory
     i++;
     for(; i < obj.size; i++)
     {
@@ -142,16 +212,16 @@ void LC3_loadObj(LC3* ptr, obj_file obj)
 }
 
 //MDR still has the instruction
-inline void LC3_BR(LC3* ptr)
+inline void lc3_BR(lc3 *ptr)
 {
     uint16_t cc = (ptr->psr)&0x7;   //Mask the cc bits
     uint16_t con = ((ptr->ir)>>9)&0x7; //Shift and mask the condition branch
     if(((cc&0x4) & (con&0x4)) | ((cc&0x2) & (con&0x2)) | ((cc&0x1) & (con&0x1)))
     {
-        ptr->pc = ptr->pc + LC3_SEXT((ptr->ir)&0x1FF,9);
+        ptr->pc = ptr->pc + lc3_SEXT((ptr->ir) & 0x1FF, 9);
     }
 }
-inline void LC3_ANDD(LC3* ptr)
+inline void lc3_ANDD(lc3 *ptr)
 {
     uint16_t inst = ptr->ir;
     int16_t src1;
@@ -161,7 +231,7 @@ inline void LC3_ANDD(LC3* ptr)
     if(inst & 0x0020)
     {
         //Immediate
-        src2 = LC3_SEXT(inst & 0x1F,5);
+        src2 = lc3_SEXT(inst & 0x1F, 5);
     }
     else
     {
@@ -173,35 +243,35 @@ inline void LC3_ANDD(LC3* ptr)
     else
         res = src1 + src2;
     ptr->registers[(inst>>9)&0x7] = res;
-    LC3_setcc(ptr,(uint16_t)res);
+    lc3_setcc(ptr, (uint16_t) res);
 }
-inline void LC3_LS(LC3* ptr)
+inline void lc3_LS(lc3 *ptr)
 {
     uint16_t inst = ptr->ir;
-    ptr->mar = ptr->pc + LC3_SEXT((inst)&0x1FF,9);
+    ptr->mar = ptr->pc + lc3_SEXT((inst) & 0x1FF, 9);
     uint16_t* regptr = &(ptr->registers[(inst>>9)&0x7]);
     if(inst & 0x1000)
     {
         //ST
         ptr->mdr = *regptr;
-        ptr->memory.mem[ptr->mar] = ptr->mdr;
+        ptr->mem[ptr->mar] = ptr->mdr;
     }
     else
     {
         //LD
-        ptr->mdr = ptr->memory.mem[ptr->mar];
+        ptr->mdr = ptr->mem[ptr->mar];
         *regptr = ptr->mdr;
-        LC3_setcc(ptr,*regptr);
+        lc3_setcc(ptr, *regptr);
     }
 }
-inline void LC3_JSR(LC3* ptr)
+inline void lc3_JSR(lc3 *ptr)
 {
     uint16_t inst = ptr->ir;
     ptr->registers[7] = ptr->pc;    //Save PC
     if(inst & 0x0800)
     {
         //JSR
-        ptr->pc = ptr->pc + LC3_SEXT(inst & 0x07FF,11);
+        ptr->pc = ptr->pc + lc3_SEXT(inst & 0x07FF, 11);
     }
     else
     {
@@ -209,26 +279,26 @@ inline void LC3_JSR(LC3* ptr)
         ptr->pc = ptr->registers[(inst >> 6)&0x7];
     }
 }
-inline void LC3_LSR(LC3* ptr)
+inline void lc3_LSR(lc3 *ptr)
 {
     uint16_t inst = ptr->ir;
-    ptr->mar = ptr->registers[(inst>>6)&0x7] + LC3_SEXT(inst&0x3F,6);
+    ptr->mar = ptr->registers[(inst>>6)&0x7] + lc3_SEXT(inst & 0x3F, 6);
     uint16_t* regptr = &(ptr->registers[(inst>>9)&0x7]);
     if(inst & 0x1000)
     {
         //STR
         ptr->mdr = *regptr;
-        ptr->memory.mem[ptr->mar] = ptr->mdr;
+        ptr->mem[ptr->mar] = ptr->mdr;
     }
     else
     {
         //LDR
-        ptr->mdr = ptr->memory.mem[ptr->mar];
+        ptr->mdr = ptr->mem[ptr->mar];
         *regptr = ptr->mdr;
-        LC3_setcc(ptr,*regptr);
+        lc3_setcc(ptr, *regptr);
     }
 }
-inline void LC3_RTI(LC3* ptr)
+inline void lc3_RTI(lc3 *ptr)
 {
     if(ptr->psr & 0x8000)
     {
@@ -237,64 +307,88 @@ inline void LC3_RTI(LC3* ptr)
     else
     {
         //RTI
-        ptr->pc = ptr->memory.mem[ptr->registers[6]];   //Pop off the pc
+        ptr->pc = ptr->mem[ptr->registers[6]];   //Pop off the pc
         (ptr->registers[6])++;
-        ptr->psr = ptr->memory.mem[ptr->registers[6]];  //Pop off the psr
+        ptr->psr = ptr->mem[ptr->registers[6]];  //Pop off the psr
         (ptr->registers[6])++;
     }
 }
-inline void LC3_NOT(LC3* ptr)
+inline void lc3_NOT(lc3 *ptr)
 {
     uint16_t inst = ptr->ir;
     uint16_t* drptr = &(ptr->registers[(inst>>9)&0x7]);
     uint16_t* srptr = &(ptr->registers[(inst>>6)&0x7]);
     *drptr = ~(*srptr);
-    LC3_setcc(ptr,*drptr);
+    lc3_setcc(ptr, *drptr);
 }
-inline void LC3_LSI(LC3* ptr)
+inline void lc3_LSI(lc3 *ptr)
 {
     uint16_t inst = ptr->ir;
-    ptr->mar = ptr->pc + LC3_SEXT(inst & 0x1FF,9);
-    ptr->mdr = ptr->memory.mem[ptr->mar];
+    ptr->mar = ptr->pc + lc3_SEXT(inst & 0x1FF, 9);
+    ptr->mdr = ptr->mem[ptr->mar];
     ptr->mar = ptr->mdr;
     uint16_t* regptr = &(ptr->registers[(inst>>9)&0x7]);
     if(inst & 0x1000)
     {
         //STI
         ptr->mdr = *regptr;
-        ptr->memory.mem[ptr->mar] = ptr->mdr;
+        ptr->mem[ptr->mar] = ptr->mdr;
     }
     else
     {
         //LDI
-        ptr->mdr = ptr->memory.mem[ptr->mar];
+        ptr->mdr = ptr->mem[ptr->mar];
         *regptr = ptr->mdr;
-        LC3_setcc(ptr,*regptr);
+        lc3_setcc(ptr, *regptr);
     }
 }
-inline void LC3_JMP(LC3* ptr)
+inline void lc3_JMP(lc3 *ptr)
 {
     ptr->pc = ptr->registers[((ptr->ir)>>6)&0x7];
 }
-inline void LC3_RESV(LC3* ptr)
+inline void lc3_RESV(lc3 *ptr)
 {
 
 }
-inline void LC3_LEA(LC3* ptr)
+inline void lc3_LEA(lc3 *ptr)
 {
     uint16_t* regptr = &(ptr->registers[((ptr->ir) >>9)&0x7]);
-    *regptr = ptr->pc + LC3_SEXT(ptr->ir & 0x1FF,9);
-    LC3_setcc(ptr,*regptr);
+    *regptr = ptr->pc + lc3_SEXT(ptr->ir & 0x1FF, 9);
+    lc3_setcc(ptr, *regptr);
 }
-inline void LC3_TRAP(LC3* ptr)
+inline void lc3_TRAP(lc3 *ptr)
 {
     //Hacked in halt
     if((ptr->ir & 0xFF) == 0x25)
     {
-        ptr->memory.mem[0xFFFE] = ptr->memory.mem[0xFFFE] & 0x7FFF; //Clear it
+        ptr->mem[0xFFFE] = ptr->mem[0xFFFE] & 0x7FFF; //Clear it
         return;
     }
+    ptr->mar = ptr->ir & 0xFF;
+    ptr->mdr = ptr->mem[ptr->mar];
     ptr->registers[7] = ptr->pc;
-    ptr->pc = ptr->memory.mem[ptr->ir & 0xFF];
-}
+    ptr->pc = ptr->mdr;
 
+
+}
+inline void lc3_MEM(lc3 *ptr, uint16_t inst, uint16_t *regptr)
+{
+    if(inst & 0x1000)
+    {
+        //S
+        ptr->mdr = *regptr;
+        ptr->mem[ptr->mar] = ptr->mdr;
+    }
+    else
+    {
+        //L
+        if(ptr->mar == KBDR)
+        {
+            //If the KBDR is read, clear the freshness flag
+            ptr->mem[KBSR] &= 0x7FFF;
+        }
+        ptr->mdr = ptr->mem[ptr->mar];
+        *regptr = ptr->mdr;
+        lc3_setcc(ptr, *regptr);
+    }
+}
