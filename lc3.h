@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#include "fileio.h"
 
 
 #define GPR_NUM 8
@@ -65,24 +66,21 @@ typedef struct lc3_str
     uint8_t cursorY;
 } lc3;
 
-typedef struct obj_str
-{
-    size_t size;
-    uint16_t* buffer;
-    uint8_t allocated;
-}obj_file;
+
 
 enum CycleReturn
 {
     SUCCESS,
     HALT,
+    INTERRUPT
 };
 
 void lc3_init(lc3 *ptr);
-enum CycleReturn LC3_cycle(lc3 * ptr);
+enum CycleReturn lc3_cycle(lc3 *ptr);
 void lc3_ioHandle(lc3 *ptr);
 
-void lc3_checkInterrupts(lc3 *ptr);
+//Returns 1 if interrupted
+uint8_t lc3_checkInterrupts(lc3 *ptr);
 //IO handlers
 void lc3_keyHandle(lc3 *ptr, uint8_t key);      //Function to deal with keyboard
 void lc3_disHandle(lc3 *ptr);
@@ -96,6 +94,9 @@ void lc3_setcc(lc3 *ptr, uint16_t num);
 uint8_t lc3_getIntLine(lc3 *ptr, uint8_t intLine);
 void lc3_setIntLine(lc3 *ptr, uint8_t intLine);
 void lc3_clearIntLine(lc3 *ptr, uint8_t intLine);
+
+//Returns 0 if machine isn't on
+uint8_t lc3_checkMachine(lc3 *ptr);
 
 
 //Classic loading scheme: first word is entry point

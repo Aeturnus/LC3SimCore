@@ -1,20 +1,32 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "fileio.h"
 #include "lc3.h"
+#include "debugger.h"
 
+/*
 enum FileStatus
 {
     OPEN,
     NOTVALID,
     PARITY
 };
+ */
 
 enum FileStatus openObj(char* filePath,obj_file* obj);
 void deleteObj(obj_file* obj);
-
+int debuggerTest();
+int test();
 int main()
 {
-    printf("Select: \n(a) Step\n(b) Provide keyboard input\n(c) Stop");
+    //printf("Select: \n(a) Step\n(b) Provide keyboard input\n(c) Stop");
+    test();
+    return 0;
+}
+
+int debuggerTest()
+{
+    return 0;
 }
 
 int test() {
@@ -34,7 +46,7 @@ int test() {
     }
     lc3_loadObj(&lc3, obj);
 
-    for(lc3.mem[0xFFFE] |= 0x8000 ; LC3_cycle(&lc3) == SUCCESS;cycles++);
+    for(lc3.mem[0xFFFE] |= 0x8000 ; lc3_cycle(&lc3) != HALT;cycles++);
     for(int i = 0; i < GPR_NUM; i++)
     {
         printf("R%d    : x%04x | %d\n",i,lc3.registers[i],(int16_t)lc3.registers[i]);

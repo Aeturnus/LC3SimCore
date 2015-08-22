@@ -9,12 +9,8 @@
 
 #include "lc3.h"
 
-enum FileStatus
-{
-    OPEN,
-    NOTVALID,
-    PARITY
-};
+#include "fileio.h"
+
 
 
 //Conditional types
@@ -35,7 +31,6 @@ typedef struct bp_str
     uint8_t srcType;    //Type of source to check: mem or reg
     uint16_t srcNum;    //How it's addressed: reg 0-7 or mem 0x0000 - 0xFFFF
     int16_t testVal;    //Test value (signed)
-
 }bp;
 
 //Debugger struct
@@ -43,13 +38,14 @@ typedef struct db_str
 {
     struct lc3_str *lc3ptr;
     struct bp_str breakpoints[0x10000];  //1:1 mapping of mem locs to breakpoints
+    uint64_t cycleCount;
 }db;
 
-enum FileStatus db_openObj(char* filePath,obj_file* obj);
-void db_deleteObj(obj_file* obj);
+void db_loadObj(char* filePath, db* ptr);
 
-//"step" will be a single cycle run. Others will call this
-void db_step(db* ptr);
+void db_init(db* ptr);
+//"step" will be a single cycle run. Others will call this. Returns 1 if breakpoint encountered
+uint8_t db_step(db* ptr);
 //"stepOver" will be a single cycle run unless it's a JSR/JSRR call that will continue running until PC equals the next instruction
 void db_stepOver(db* ptr);
 //"stepOut" will run until JMP R7 is hit
@@ -57,7 +53,7 @@ void db_stepOut(db* ptr);
 //"run" will continue until a breakpoint is hit
 void db_run(db* ptr);
 
-//This will be run at the end of every step
+//This will be run at the end of every step. Returns 1 if breakpoint encountered
 uint8_t db_checkBP(db* ptr);
 
 #endif //LC3SIMCORE_DEBUGGER_H

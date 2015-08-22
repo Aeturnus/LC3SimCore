@@ -16,18 +16,21 @@ void lc3_init(lc3 *ptr)
     ptr->mdr= 0;
     ptr->disk = NULL;
     ptr->diskStatus = 0;
+    ptr->mem[0xFFFE] = 0xFFFF;
 }
 
 
-enum CycleReturn LC3_cycle(lc3 * ptr)
+enum CycleReturn lc3_cycle(lc3 *ptr)
 {
-    if(!(ptr->mem[0xFFFE] & 0x8000))
+    if(!lc3_checkMachine(ptr))
         return HALT;
 
                                     //FETCH
     ptr->mar = ptr->pc;
     ptr->pc++;                      //Increment program counter
-    lc3_checkInterrupts(ptr);
+    if(lc3_checkInterrupts(ptr))
+        return INTERRUPT;
+
     ptr->mdr = ptr->mem[ptr->mar];   //Load the instruction
     ptr->ir = ptr->mdr;
 
@@ -91,7 +94,7 @@ enum CycleReturn LC3_cycle(lc3 * ptr)
     return SUCCESS;
 }
 
-void lc3_checkInterrupts(lc3 *ptr)
+uint8_t lc3_checkInterrupts(lc3 *ptr)
 {
     //KBDR check
     //Check KBDR interrupt bit
@@ -102,8 +105,11 @@ void lc3_checkInterrupts(lc3 *ptr)
         {
             lc3_interrupt(ptr, IV_KB, 4);
             lc3_clearIntLine(ptr, IV_KB);
+            return 1;
         }
     }
+
+    return 0;
 }
 
 void lc3_ioHandle(lc3 *ptr)
@@ -166,6 +172,10 @@ inline void lc3_setIntLine(lc3 *ptr, uint8_t intLine)
 inline void lc3_clearIntLine(lc3 *ptr, uint8_t intLine)
 {
     ptr->intLines[intLine/8] &= ~((0x1)<<(intLine%8));
+}
+inline uint8_t lc3_checkMachine(lc3 *ptr)
+{
+    return (ptr->mem[0xFFFE] & 0x8000)>>15;
 }
 
 void lc3_interrupt(lc3 *ptr, uint8_t intNum, uint8_t priority)
@@ -378,6 +388,11 @@ inline void lc3_MEM(lc3 *ptr, uint16_t inst, uint16_t *regptr)
         //S
         ptr->mdr = *regptr;
         ptr->mem[ptr->mar] = ptr->mdr;
+        if(ptr->mar == DDR)
+        {
+            //If the DDR is written to, clear the freshness flag
+            ptr->mem[DSR] *= 0x7FFF;
+        }
     }
     else
     {
