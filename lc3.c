@@ -206,6 +206,7 @@ void lc3_interrupt(lc3 *ptr, uint8_t intNum, uint8_t priority)
 //Loading functions
 
 //The classic loading scheme we all know and love
+/*
 void lc3_loadObj(lc3 *ptr, obj_file obj)
 {
     size_t i = 0;
@@ -220,6 +221,7 @@ void lc3_loadObj(lc3 *ptr, obj_file obj)
         mem[entry+i-1] = obj.buffer[i];
     }
 }
+*/
 
 //MDR still has the instruction
 inline void lc3_BR(lc3 *ptr)
@@ -260,19 +262,7 @@ inline void lc3_LS(lc3 *ptr)
     uint16_t inst = ptr->ir;
     ptr->mar = ptr->pc + lc3_SEXT((inst) & 0x1FF, 9);
     uint16_t* regptr = &(ptr->registers[(inst>>9)&0x7]);
-    if(inst & 0x1000)
-    {
-        //ST
-        ptr->mdr = *regptr;
-        ptr->mem[ptr->mar] = ptr->mdr;
-    }
-    else
-    {
-        //LD
-        ptr->mdr = ptr->mem[ptr->mar];
-        *regptr = ptr->mdr;
-        lc3_setcc(ptr, *regptr);
-    }
+    lc3_MEM(ptr,inst,regptr);
 }
 inline void lc3_JSR(lc3 *ptr)
 {
@@ -294,19 +284,7 @@ inline void lc3_LSR(lc3 *ptr)
     uint16_t inst = ptr->ir;
     ptr->mar = ptr->registers[(inst>>6)&0x7] + lc3_SEXT(inst & 0x3F, 6);
     uint16_t* regptr = &(ptr->registers[(inst>>9)&0x7]);
-    if(inst & 0x1000)
-    {
-        //STR
-        ptr->mdr = *regptr;
-        ptr->mem[ptr->mar] = ptr->mdr;
-    }
-    else
-    {
-        //LDR
-        ptr->mdr = ptr->mem[ptr->mar];
-        *regptr = ptr->mdr;
-        lc3_setcc(ptr, *regptr);
-    }
+    lc3_MEM(ptr,inst,regptr);
 }
 inline void lc3_RTI(lc3 *ptr)
 {
@@ -338,19 +316,7 @@ inline void lc3_LSI(lc3 *ptr)
     ptr->mdr = ptr->mem[ptr->mar];
     ptr->mar = ptr->mdr;
     uint16_t* regptr = &(ptr->registers[(inst>>9)&0x7]);
-    if(inst & 0x1000)
-    {
-        //STI
-        ptr->mdr = *regptr;
-        ptr->mem[ptr->mar] = ptr->mdr;
-    }
-    else
-    {
-        //LDI
-        ptr->mdr = ptr->mem[ptr->mar];
-        *regptr = ptr->mdr;
-        lc3_setcc(ptr, *regptr);
-    }
+    lc3_MEM(ptr,inst,regptr);
 }
 inline void lc3_JMP(lc3 *ptr)
 {

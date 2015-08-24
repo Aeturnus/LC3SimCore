@@ -1,31 +1,80 @@
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "fileio.h"
 #include "lc3.h"
 #include "debugger.h"
 
-/*
-enum FileStatus
-{
-    OPEN,
-    NOTVALID,
-    PARITY
-};
- */
-
-enum FileStatus openObj(char* filePath,obj_file* obj);
-void deleteObj(obj_file* obj);
 int debuggerTest();
+int otherTest();
 int test();
+
+void keyListener(void)
+{
+    int in = getchar();
+    if(in == 27)
+        return;
+}
+
+
 int main()
 {
     //printf("Select: \n(a) Step\n(b) Provide keyboard input\n(c) Stop");
-    test();
+    //test();
+    otherTest();
+    return 0;
+}
+
+int otherTest()
+{
+    lc3 lc3;
+    lc3_init(&lc3);
+    ldb db;
+    ldb_init(&db, &lc3);
+    if(ldb_loadObj(&db,"testcases/Project1.obj")!=OPEN)
+        return -1;
+    lc3.mem[0x30f0] = 25;
+    lc3.mem[0x30f1] = 4;
+    //ldb_setUnconBP(&db,0x3001);
+    //ldb_setBP(&db, 0x3001, 1, bp_neq, bp_reg, 0, 0xbeef);
+    ldb_run(&db);
+
+    for(int i = 0; i < GPR_NUM; i++)
+    {
+        printf("R%d    : x%04x | %d\n",i,lc3.registers[i],(int16_t)lc3.registers[i]);
+    }
+    for(int i = 0; i < 8; i++)
+    {
+        printf("x%x : x%04x | %d\n",0x3000+i,lc3.mem[0x3000+i],(int16_t)lc3.mem[0x3000+i]);
+    }
+    printf("x%x : x%04x | %d\n",0x30f2,lc3.mem[0x30f2],(int16_t)lc3.mem[0x30f2]);
+    printf("%llu cycles\n",(long long unsigned int)db.cycleCount);
+
     return 0;
 }
 
 int debuggerTest()
 {
+    lc3 lc3;
+    lc3_init(&lc3);
+    ldb db;
+    ldb_init(&db, &lc3);
+    if(ldb_loadObj(&db,"testcases/lsi.obj") != OPEN)
+        return -1;
+    //ldb_setUnconBP(&db,0x3001);
+    ldb_setBP(&db, 0x3001, 1, bp_neq, bp_reg, 0, 0xbeef);
+    ldb_run(&db);
+
+    for(int i = 0; i < GPR_NUM; i++)
+    {
+        printf("R%d    : x%04x | %d\n",i,lc3.registers[i],(int16_t)lc3.registers[i]);
+    }
+    for(int i = 0; i < 8; i++)
+    {
+        printf("x%x : x%04x | %d\n",0x3000+i,lc3.mem[0x3000+i],(int16_t)lc3.mem[0x3000+i]);
+    }
+    printf("%llu cycles\n",(long long unsigned int) db.cycleCount);
+
     return 0;
 }
 
@@ -35,16 +84,6 @@ int test() {
     printf("Hello world\n");
     lc3 lc3;
     lc3_init(&lc3);
-
-    obj_file obj ={0,0,0};
-
-    enum FileStatus state = openObj("testcases/lsi.obj",&obj);
-    if(state != OPEN)
-    {
-        printf("FAIL!\n");
-        return -1;
-    }
-    lc3_loadObj(&lc3, obj);
 
     for(lc3.mem[0xFFFE] |= 0x8000 ; lc3_cycle(&lc3) != HALT;cycles++);
     for(int i = 0; i < GPR_NUM; i++)
@@ -59,50 +98,4 @@ int test() {
 
 
     return 0;
-}
-
-
-enum FileStatus openObj(char* filePath,obj_file* ptr)
-{
-    FILE* f;
-    f = fopen(filePath,"rb");
-    if(f == NULL)
-    {
-        fclose(f);
-        return NOTVALID;
-    }
-    fseek(f,0,SEEK_END);
-    size_t size = ftell(f);
-    if(size%2 == 1)
-    {
-        fclose(f);
-        return PARITY;
-    }
-    fseek(f,0,SEEK_SET);
-
-    if(ptr->allocated)
-    {
-        free(ptr->buffer);
-    }
-    ptr->size = 0;
-    ptr->buffer = malloc(size);    //size is in bytes
-    for(size_t i = 0; i < size;i+=2)
-    {
-        //Since it's big endian, we have to hack around it
-        fread(&((uint8_t*)ptr->buffer)[i+1],1,1,f);
-        fread(&((uint8_t*)ptr->buffer)[i],1,1,f);
-        ptr->size++;
-        //fread(&ptr->buffer[i],2,1,f);
-    }
-    fclose(f);
-    ptr->allocated = 1;
-    return SUCCESS;
-}
-
-void deleteObj(obj_file* obj)
-{
-    if(obj->allocated)
-    {
-        free(obj->buffer);
-    }
 }

@@ -36,8 +36,7 @@ enum FileStatus fio_loadObj(char *filePath, obj_file *ptr)
     for(size_t i = 0; i < size;i+=2)
     {
         //Since it's big endian, we have to hack around it
-        fread(&((uint8_t*)ptr->buffer)[i+1],1,1,f);
-        fread(&((uint8_t*)ptr->buffer)[i],1,1,f);
+        ptr->buffer[i/2] = fio_read16_be(f);
         ptr->size++;
         //fread(&ptr->buffer[i],2,1,f);
     }

@@ -8,9 +8,6 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include "fileio.h"
-
-
 #define GPR_NUM 8
 
 #define OP_BR   0x0
@@ -72,7 +69,7 @@ enum CycleReturn
 {
     SUCCESS,
     HALT,
-    INTERRUPT
+    INTERRUPT,
 };
 
 void lc3_init(lc3 *ptr);
@@ -89,10 +86,15 @@ void lc3_diskHandle(lc3 *ptr);
 void lc3_interrupt(lc3 *ptr, uint8_t intNum, uint8_t priority);
 
 //Helper functions
+//Sign extend. Bitnum is the bit number
 int16_t lc3_SEXT(uint16_t input, uint8_t bitnum);
+//Set condition codes. Provide it the number that will determine it
 void lc3_setcc(lc3 *ptr, uint16_t num);
+//Returns 1 or 0 for the particular interrupt line
 uint8_t lc3_getIntLine(lc3 *ptr, uint8_t intLine);
+//Sets the provided interrupt line
 void lc3_setIntLine(lc3 *ptr, uint8_t intLine);
+//Clears the provided interrupt line
 void lc3_clearIntLine(lc3 *ptr, uint8_t intLine);
 
 //Returns 0 if machine isn't on
@@ -100,21 +102,35 @@ uint8_t lc3_checkMachine(lc3 *ptr);
 
 
 //Classic loading scheme: first word is entry point
-void lc3_loadObj(lc3 *ptr, obj_file obj);
+//COMMENTED OUT BECAUSE IT'S NOT THE PROCESSOR'S JOB TO LOAD CODE THROUGH THE HOST SYSTEM
+//void lc3_loadObj(lc3 *ptr, obj_file obj);
 
 //Inline functions for each instruction
+//Branch
 void lc3_BR(lc3 *ptr);
+//Add and And; they do the same thing except operation
 void lc3_ANDD(lc3 *ptr);
+//Load/Store
 void lc3_LS(lc3 *ptr);
+//JSR and JSRR
 void lc3_JSR(lc3 *ptr);
+//Load/Store register
 void lc3_LSR(lc3 *ptr);
+//Return from interrupt
 void lc3_RTI(lc3 *ptr);
+//NOT
 void lc3_NOT(lc3 *ptr);
+//Load/Store indirect
 void lc3_LSI(lc3 *ptr);
+//Jump and Jump Register
 void lc3_JMP(lc3 *ptr);
+//Reserved
 void lc3_RESV(lc3 *ptr);
+//Load Effective Address
 void lc3_LEA(lc3 *ptr);
+//Trap
 void lc3_TRAP(lc3 *ptr);
+//All memory access instructions undergo the same sequence after the MAR is calculated
 void lc3_MEM(lc3 *ptr, uint16_t inst, uint16_t *regptr);
 
 
