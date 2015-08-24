@@ -3,7 +3,7 @@
 
 #include "fileio.h"
 #include "lc3.h"
-#include "debugger.h"
+#include "ldb.h"
 
 int debuggerTest();
 int otherTest();

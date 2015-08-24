@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "debugger.h"
+#include "ldb.h"
 #include "fileio.h"
 
 void ldb_init(ldb *ptr, lc3 *lc3ptr)
