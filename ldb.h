@@ -10,19 +10,27 @@
 #include "lc3.h"
 #include "fileio.h"
 
-
+//BEHOLD THIS OOP STYLED C FILE
 
 //Conditional types
-#define bp_eq   0
-#define bp_ne   1
-#define bp_neq  1
-#define bp_g    2
-#define bp_l    3
-#define bp_geq  4
-#define bp_leq  5
+#define ldb_eq   0
+#define ldb_ne   1
+#define ldb_neq  1
+#define ldb_g    2
+#define ldb_l    3
+#define ldb_geq  4
+#define ldb_leq  5
 //Source type
-#define bp_reg  0
-#define bp_mem  1
+#define ldb_reg  0
+#define ldb_mem  1
+
+#define ldb_reg_psr 8
+#define ldb_reg_pc  9
+#define ldb_reg_ir  10
+#define ldb_reg_mar 11
+#define ldb_reg_mdr 12
+
+#define ldb_reg_max 12
 //Breakpoint struct
 typedef struct lbp_str
 {
@@ -52,7 +60,7 @@ typedef struct ldb_str
 
 void ldb_init(ldb *ptr, lc3 *lc3ptr);
 //"step" will be a single cycle run. Others will call this. Returns 1 if breakpoint encountered
-enum CycleReturn ldb_step(ldb *ptr);
+enum CycleReturn_e ldb_step(ldb *ptr);
 //"stepOver" will be a single cycle run unless it's a JSR/JSRR call that will continue running until PC equals the next instruction
 void ldb_stepOver(ldb *ptr);
 //"stepOut" will run until JMP R7 is hit
@@ -61,7 +69,6 @@ void ldb_stepOut(ldb *ptr);
 void ldb_run(ldb *ptr);
 
 //Breaker stuff
-
 //returns 1 if a break has occurred; 0 if it's still running
 uint8_t ldb_checkBreak(ldb *ptr);
 //Setting break will cause the machine to stop
@@ -85,10 +92,48 @@ uint8_t ldb_setUnconBP(ldb *ptr, uint16_t address);
 uint8_t ldb_setConBP(ldb *ptr, uint16_t address, uint8_t conditionalType, uint8_t sourceType, uint16_t sourceNumber,
                      int16_t testValue);
 
+//Setters and getters for the ldb
+//Generic set
+//returns 1 on success, 0 on fail
+uint8_t ldb_set(ldb* ptr,uint8_t srcType,uint16_t srcNum, uint16_t setVal);
+void ldb_setReg(ldb* ptr, uint16_t srcNum, uint16_t setVal);
+void ldb_setMem(ldb* ptr, uint16_t srcNum, uint16_t setVal);
+
+uint16_t ldb_get(ldb* ptr, uint8_t srcType, uint16_t srcNum);
+uint16_t ldb_getReg(ldb* ptr, uint16_t srcNum);
+uint16_t ldb_getMem(ldb* ptr, uint16_t srcNum);
+
+//Set/get condition codes. To set, provide a positive, zero, or negative
+//Input: positive, zero, or negative number
+void ldb_setCC(ldb* ptr, int set);
+//Output: -1 for N, 0 for Z, 1 for P
+int ldb_getCC(ldb* ptr);
+
+
+//Human readable dump
+enum FileStatus_e ldb_dump_lc3_r(ldb* ldbptr,char *filePath);     //Will dump the LC3 contents
+enum FileStatus_e ldb_dump_ldb_r(ldb* ldbptr,char *filePath);     //Will dump debugger settings
+
+//ASCII dump
+enum FileStatus_e ldb_dump_lc3_t(ldb* ldbptr,char *filePath);     //Will dump the LC3 contents
+enum FileStatus_e ldb_dump_ldb_t(ldb* ldbptr,char *filePath );     //Will dump debugger settings
+
+//Binary dump
+enum FileStatus_e ldb_dump_lc3_b(ldb* ldbptr,char *filePath);     //Will dump the LC3 contents
+enum FileStatus_e ldb_dump_ldb_b(ldb* ldbptr,char *filePath);     //Will dump debugger settings
+
+//Load from dump
+//ASCII dump load
+enum FileStatus_e ldb_dumpload_lc3_t(ldb* ldbptr, char *filePath);     //Will dump the LC3 contents
+enum FileStatus_e ldb_dumpload_ldb_t(ldb* ldbptr,char *filePath);     //Will dump debugger settings
+
+//Binary dump load
+enum FileStatus_e ldb_dumpload_lc3_b(ldb* ldbptr,char *filePath);     //Will dump the LC3 contents
+enum FileStatus_e ldb_dumpload_ldb_b(ldb* ldbptr,char *filePath);     //Will dump debugger settings
 
 //Loaders
-enum FileStatus ldb_loadObj(ldb* ptr, char* filePath);
-enum FileStatus ldb_loadO(ldb* ptr, char* filePath);
+enum FileStatus_e ldb_loadObj(ldb* ptr, char* filePath);
+enum FileStatus_e ldb_loadO(ldb* ptr, char* filePath);
 
 //Command interpreter
 

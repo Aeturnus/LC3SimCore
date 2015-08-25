@@ -9,7 +9,7 @@
 #include "fileio.h"
 #include "lc3.h"
 
-enum FileStatus fio_loadObj(char *filePath, obj_file *ptr)
+enum FileStatus_e fio_loadObj(char *filePath, obj_file *ptr)
 {
     FILE* f;
     f = fopen(filePath,"rb");
@@ -53,7 +53,7 @@ void fio_deleteObj(obj_file* obj)
     }
 }
 
-enum FileStatus fio_loadO(char *filePath, o_file *ptr)
+enum FileStatus_e fio_loadO(char *filePath, o_file *ptr)
 {
     FILE* f;
     f = fopen(filePath,"rb");
@@ -96,7 +96,7 @@ void fio_deleteSubO(o_sub *ptr)
     free(ptr->text);
 }
 
-
+//Read/write
 uint16_t fio_read16_be(FILE* file)
 {
     uint16_t num;

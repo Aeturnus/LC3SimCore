@@ -14,13 +14,11 @@ void lc3_init(lc3 *ptr)
     ptr->psr= 0x2;
     ptr->mar= 0;
     ptr->mdr= 0;
-    ptr->disk = NULL;
-    ptr->diskStatus = 0;
     ptr->mem[0xFFFE] = 0xFFFF;
 }
 
 
-enum CycleReturn lc3_cycle(lc3 *ptr)
+enum CycleReturn_e lc3_cycle(lc3 *ptr)
 {
     if(!lc3_checkMachine(ptr))
         return HALT;
@@ -198,9 +196,7 @@ void lc3_interrupt(lc3 *ptr, uint8_t intNum, uint8_t priority)
         ptr->mdr = ptr->mem[ptr->mar];
         ptr->mar = ptr->mdr;
         ptr->pc = ptr->mdr;                                     //PC of interrupt SR
-
     }
-
 }
 
 //Loading functions

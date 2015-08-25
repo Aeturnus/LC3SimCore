@@ -43,37 +43,40 @@
 #define IV_HD    0x82
 //New io device:
 #define HDSR    0xFE08  //Hard disk status register
-#define HDDR    0xFE0A  //Hard disk data register
+#define HDBR    0xFE0A  //Hard disk block register
+#define HDDR    0xFE0C  //Hard disk data register
 
 typedef struct lc3_str
 {
-    uint16_t registers[8];  //General purpose regs
     uint16_t psr;           //process status register
     uint16_t pc;            //program counter
     uint16_t ir;           //Memory address register
     uint16_t mar;           //Memory address register
     uint16_t mdr;           //Memory data register
+    uint8_t intLines[32];   //A bit for each possible interrupt
+    uint16_t registers[8];  //General purpose regs
     //struct Memory_str memory;      //Memory struct
     uint16_t mem[0x10000];
-    uint8_t intLines[32];   //A bit for each possible interrupt
+    /*
     uint8_t* disk;          //Attach a disk to the LC3 when wanted
     uint8_t diskStatus;     //How many cycles before disk read is complete
     uint8_t vram[1920];     //Memory for the text display. Not accessible to user.
     uint8_t cursorX;
     uint8_t cursorY;
+    */
 } lc3;
 
 
 
-enum CycleReturn
+typedef enum CycleReturn_e
 {
     SUCCESS,
     HALT,
     INTERRUPT,
-};
+}CycleReturn;
 
 void lc3_init(lc3 *ptr);
-enum CycleReturn lc3_cycle(lc3 *ptr);
+enum CycleReturn_e lc3_cycle(lc3 *ptr);
 void lc3_ioHandle(lc3 *ptr);
 
 //Returns 1 if interrupted

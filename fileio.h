@@ -10,12 +10,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-enum FileStatus
+typedef enum FileStatus_e
 {
     OPEN,
     NOTVALID,
     PARITY
-};
+} FileStatus;
 
 typedef struct obj_str
 {
@@ -39,14 +39,15 @@ typedef struct o_str
     o_sub* subos;
 }o_file;
 
-enum FileStatus fio_loadObj(char *filePath, obj_file *ptr);
+enum FileStatus_e fio_loadObj(char *filePath, obj_file *ptr);
 void fio_deleteObj(obj_file* ptr);
 
-enum FileStatus fio_loadO(char *filePath, o_file *ptr);
+enum FileStatus_e fio_loadO(char *filePath, o_file *ptr);
 void fio_deleteO(o_file* ptr);
 
 void fio_loadSubO(FILE* file, o_sub *ptr);
 void fio_deleteSubO(o_sub *ptr);
+
 
 //be: big endian/ le: little endian
 uint16_t fio_read16_be(FILE* file);
