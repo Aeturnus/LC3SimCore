@@ -39,6 +39,15 @@ typedef struct o_str
     o_sub* subos;
 }o_file;
 
+
+//Virtual disk file
+typedef struct vdsk_str
+{
+    uint32_t size;      //Indicates size in bytes of the disk
+    uint8_t* data;      //Gotta load it all into memory
+    uint8_t allocated;
+}vdsk_file;
+
 enum FileStatus_e fio_loadObj(char *filePath, obj_file *ptr);
 void fio_deleteObj(obj_file* ptr);
 
@@ -48,12 +57,21 @@ void fio_deleteO(o_file* ptr);
 void fio_loadSubO(FILE* file, o_sub *ptr);
 void fio_deleteSubO(o_sub *ptr);
 
+enum FileStatus_e fio_loadVdsk(char *filePath, vdsk_file *ptr);
+void fio_deleteVdsk(vdsk_file *ptr);
+enum FileStatus_e fio_makeNewVdsk(char *filePath, uint32_t size);
+
 
 //be: big endian/ le: little endian
 uint16_t fio_read16_be(FILE* file);
 uint16_t fio_read16_le(FILE* file);
 void fio_write16_be(FILE* file,uint16_t input);
 void fio_write16_le(FILE* file,uint16_t input);
+
+uint32_t fio_read32_be(FILE* file);
+uint32_t fio_read32_le(FILE* file);
+void fio_write32_be(FILE* file,uint32_t input);
+void fio_write32_le(FILE* file,uint32_t input);
 
 /*
 void fio_read16_be_p(FILE* file, uint16_t* );

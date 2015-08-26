@@ -22,6 +22,7 @@ int main()
 {
     //printf("Select: \n(a) Step\n(b) Provide keyboard input\n(c) Stop");
     //test();
+    fio_makeNewVdsk("test.vdsk",0x1000);
     otherTest();
     //dumpTest();
     return 0;

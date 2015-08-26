@@ -3,5 +3,5 @@ project(LC3SimCore)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Werror")
 
-set(SOURCE_FILES main.c lc3.h lc3.c ldb.h ldb.c fileio.h fileio.c terminal.h terminal.c ldbi.c ldbi.h lsys.c lsys.h)
+set(SOURCE_FILES main.c lc3.h lc3.c ldb.h ldb.c fileio.h fileio.c terminal.h terminal.c ldbi.c ldbi.h lsys.c lsys.h disk.c disk.h)
 add_executable(LC3SimCore ${SOURCE_FILES} main.c )
